@@ -12,10 +12,10 @@ type RoleContract struct {
 
 // User 用户结构体
 type User struct {
-	UserName   string `json:"user_name"`
-	UserRole   string `json:"user_role"`
-	UserCredit int    `json:"user_credit"`
-	Power      int    `json:"power"`
+	UserName        string	`json:"user_name"`
+	UserRole		string	`json:"user_role"`
+	UserCredit      int		`json:"user_credit"`
+	Power           int		`json:"power"`
 }
 
 // UserList 用户列表
@@ -48,16 +48,16 @@ func (r *RoleContract) Register(
 
 	// 3.用户结构体赋值
 	user := User{
-		UserName:   userName,
-		UserRole:   userRole,
+		UserName: userName,
+		UserRole: userRole,
 		UserCredit: InitCredit,
-		Power:      0,
+		Power: 0,
 	}
 
 	// 4.用户加入用户列表
 	userList := new(UserList)
 	_ = json.Unmarshal(userListAsBytes, &userList)
-	userList.Users = append(userList.Users, userName)
+	userList.Users= append(userList.Users, userName)
 
 	userAsBytes, _ := json.Marshal(user)
 	userListAsBytes, _ = json.Marshal(userList)
@@ -72,6 +72,7 @@ func (r *RoleContract) Register(
 
 	return &user, nil
 }
+
 
 // QueryUser 查询用户
 func (r *RoleContract) QueryUser(
@@ -148,7 +149,7 @@ func (r *RoleContract) QueryUserList(
 }
 
 //UserExist 判断用户是否存在
-func (r *RoleContract) UserExist(
+func(r *RoleContract) UserExist(
 	ctx contractapi.TransactionContextInterface,
 	userName string) bool {
 	// 1.获取用户

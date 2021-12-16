@@ -13,29 +13,29 @@ type ElectionContract struct {
 
 // ElectionProposal 选举提案
 type ElectionProposal struct {
-	ElectionProposalName string               `json:"election_proposal_name"`
-	ProposerName         string               `json:"proposer_name"`
-	CandidateMap         map[string]Candidate `json:"candidate_map"`
-	VoterMap             map[string]Voter     `json:"voter_map"`
-	State                string               `json:"state"`
-	StartTime            string               `json:"start_time"`
-	EndTime              string               `json:"end_time"`
+	ElectionProposalName 	string						`json:"election_proposal_name"`
+	ProposerName 			string						`json:"proposer_name"`
+	CandidateMap 			map[string]Candidate		`json:"candidate_map"`
+	VoterMap 				map[string]Voter			`json:"voter_map"`
+	State 					string						`json:"state"`
+	StartTime 				string						`json:"start_time"`
+	EndTime 				string						`json:"end_time"`
 }
 
 // Candidate 候选人
 type Candidate struct {
-	CandidateName string `json:"candidate_name"`
-	UserCredit    int    `json:"user_credit"`
-	Power         int    `json:"power"`
-	Votes         int    `json:"votes"`
+	CandidateName 	string  `json:"candidate_name"`
+	UserCredit 		int		`json:"user_credit"`
+	Power           int		`json:"power"`
+	Votes 			int		`json:"votes"`
 }
 
 // Voter 投票人
 type Voter struct {
-	VoterName  string `json:"voter_name"`
-	UserCredit int    `json:"user_credit"`
-	Power      int    `json:"power"`
-	Voted      bool   `json:"voted"`
+	VoterName 		string	`json:"voter_name"`
+	UserCredit 		int		`json:"user_credit"`
+	Power           int		`json:"power"`
+	Voted 			bool	`json:"voted"`
 }
 
 // Committee 委员会
@@ -49,7 +49,7 @@ func (e *ElectionContract) CreateElectionProposal(
 	electionProposalName string,
 	proposerName string,
 	startTime string,
-	endTime string) (*ElectionProposal, error) {
+	endTime string) (*ElectionProposal,error) {
 	// 1.判断选举提案是否存在
 	if e.ElectionProposalExist(ctx, electionProposalName) {
 		return nil, fmt.Errorf("Election proposal existed ! ")
@@ -70,7 +70,7 @@ func (e *ElectionContract) CreateElectionProposal(
 	}
 
 	// 4.查看powerUser信用值， 若小于某个额度，则拒绝发起提案
-	if proposer.UserCredit-CreditBorder < 0 {
+	if proposer.UserCredit - CreditBorder < 0 {
 		return nil, fmt.Errorf("proposer credit less than %d ", CreditBorder)
 	}
 
@@ -84,18 +84,18 @@ func (e *ElectionContract) CreateElectionProposal(
 		user, _ := r.QueryUser(ctx, userName)
 
 		voterMap[user.UserName] = Voter{
-			VoterName:  user.UserName,
+			VoterName: user.UserName,
 			UserCredit: user.UserCredit,
-			Power:      user.Power,
-			Voted:      false,
+			Power: user.Power,
+			Voted: false,
 		}
 
-		if user.UserCredit-90 > 0 {
+		if user.UserCredit - 90 > 0  {
 			candidateMap[user.UserName] = Candidate{
 				CandidateName: user.UserName,
-				UserCredit:    user.UserCredit,
-				Power:         user.Power,
-				Votes:         0,
+				UserCredit: user.UserCredit,
+				Power: user.Power,
+				Votes: 0,
 			}
 		}
 	}
@@ -103,12 +103,12 @@ func (e *ElectionContract) CreateElectionProposal(
 	// 6.赋值
 	electionProposal := ElectionProposal{
 		ElectionProposalName: electionProposalName,
-		ProposerName:         proposerName,
-		CandidateMap:         candidateMap,
-		VoterMap:             voterMap,
-		State:                "Voting",
-		StartTime:            startTime,
-		EndTime:              endTime,
+		ProposerName: proposerName,
+		CandidateMap: candidateMap,
+		VoterMap: voterMap,
+		State: "Voting",
+		StartTime: startTime,
+		EndTime: endTime,
 	}
 
 	electionProposalAsBytes, _ := json.Marshal(electionProposal)
@@ -134,7 +134,7 @@ func (e *ElectionContract) VoteElectionProposal(
 	}
 
 	// 2.获取选举提案
-	electionProposal, err := e.QueryElectionProposal(ctx, electionProposalName)
+	electionProposal,err := e.QueryElectionProposal(ctx, electionProposalName)
 
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (e *ElectionContract) CheckElectionProposal(
 	candidates := []Candidate{}
 
 	// 6.候选人成员放入数组中
-	for _, val := range electionProposal.CandidateMap {
+	for _, val  := range electionProposal.CandidateMap {
 		candidates = append(candidates, val)
 	}
 

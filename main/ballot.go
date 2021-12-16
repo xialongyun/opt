@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+	"sort"
 )
 
 type BallotContract struct {
@@ -12,21 +13,32 @@ type BallotContract struct {
 
 // BallotProposal 投票提案
 type BallotProposal struct {
-	BallotProposalName string           `json:"ballot_proposal_name"`
-	ProposerName       string           `json:"proposer_name"`
-	ProposalType       string           `json:"proposal_type"`
-	VoterMap           map[string]Voter `json:"voter_map"`
-	UpVotes            int              `json:"up_votes"`
-	NegativeVotes      int              `json:"negative_votes"`
-	NumberOfVoter      int              `json:"number_of_voter"`
-	NumberOfVoted      int              `json:"number_of_voted"`
-	State              string           `json:"state"`
-	StartTime          string           `json:"start_time"`
-	EndTime            string           `json:"end_time"`
-	Variable           string           `json:"variable"`
-	Value              int              `json:"value"`
-	Result             bool             `json:"result"`
+	BallotProposalName 	string					`json:"ballot_proposal_name"`
+	ProposerName 		string					`json:"proposer_name"`
+	ProposalType 		string					`json:"proposal_type"`
+	VoterMap 			map[string]Voter		`json:"voter_map"`
+	UpVotes 			int						`json:"up_votes"`
+	NegativeVotes 		int						`json:"negative_votes"`
+	NumberOfVoter		int						`json:"number_of_voter"`
+	NumberOfVoted       int   					`json:"number_of_voted"`
+	State 				string					`json:"state"`
+	StartTime 			string					`json:"start_time"`
+	EndTime 			string					`json:"end_time"`
+	Variable 			string                 	`json:"variable"`
+	Value               int                     `json:"value"`
+	Result 				bool					`json:"result"`
 }
+
+
+type VoteProposal struct {
+	Voted int
+	ProposalName string
+}
+
+type VotingProposals struct {
+	Proposals []VoteProposal
+}
+
 
 // CreateBallotProposal 创建投票提案
 func (b *BallotContract) CreateBallotProposal(
@@ -35,7 +47,7 @@ func (b *BallotContract) CreateBallotProposal(
 	proposerName string,
 	proposalType string,
 	startTime string,
-	endTime string) (*BallotProposal, error) {
+	endTime string) (*BallotProposal,error) {
 	// 1.判断投票提案是否存在
 	if b.BallotProposalExist(ctx, ballotProposalName) {
 		return nil, fmt.Errorf("Ballot proposal is existed ! ")
@@ -56,7 +68,7 @@ func (b *BallotContract) CreateBallotProposal(
 	}
 
 	// 4.查看powerUser信用值， 若小于某个额度，则拒绝发起提案
-	if proposer.UserCredit-CreditBorder < 0 {
+	if proposer.UserCredit - CreditBorder < 0 {
 		return nil, fmt.Errorf("proposer credit less than %d", CreditBorder)
 	}
 
@@ -71,11 +83,26 @@ func (b *BallotContract) CreateBallotProposal(
 			//获取用户
 			user, _ := r.QueryUser(ctx, userName)
 
+			votingProposals, _ := b.QueryVoterProposals(ctx, userName)
+    		proposal := VoteProposal{
+				Voted: 0,
+				ProposalName: ballotProposalName,
+			}
+			votingProposals.Proposals = append(votingProposals.Proposals, proposal)
+			votingProposalsAsBytes, _ := json.Marshal(votingProposals)
+
+			// 上链
+			err = ctx.GetStub().PutState("VotingProposals" + userName, votingProposalsAsBytes)
+
+			if err != nil {
+				return nil, err
+			}
+
 			voterMap[user.UserName] = Voter{
-				VoterName:  user.UserName,
+				VoterName: user.UserName,
 				UserCredit: user.UserCredit,
-				Power:      user.Power,
-				Voted:      false,
+				Power: user.Power,
+				Voted: false,
 			}
 		}
 	}
@@ -86,12 +113,27 @@ func (b *BallotContract) CreateBallotProposal(
 		for _, userName := range leagueUserList.Users {
 			//获取用户
 			user, _ := r.QueryUser(ctx, userName)
+			votingProposals, _ := b.QueryVoterProposals(ctx, userName)
 
+			proposal := VoteProposal{
+				Voted: 0,
+				ProposalName: ballotProposalName,
+			}
+
+			votingProposals.Proposals = append(votingProposals.Proposals, proposal)
+			votingProposalsAsBytes, _ := json.Marshal(votingProposals)
+
+			// 上链
+			err = ctx.GetStub().PutState("VotingProposals" + userName, votingProposalsAsBytes)
+
+			if err != nil {
+				return nil, err
+			}
 			voterMap[user.UserName] = Voter{
-				VoterName:  user.UserName,
+				VoterName: user.UserName,
 				UserCredit: user.UserCredit,
-				Power:      user.Power,
-				Voted:      false,
+				Power: user.Power,
+				Voted: false,
 			}
 		}
 	}
@@ -99,16 +141,16 @@ func (b *BallotContract) CreateBallotProposal(
 	// 8.赋值
 	ballotProposal := BallotProposal{
 		BallotProposalName: ballotProposalName,
-		ProposerName:       proposerName,
-		VoterMap:           voterMap,
-		UpVotes:            0,
-		NegativeVotes:      0,
-		NumberOfVoter:      len(voterMap),
-		NumberOfVoted:      0,
-		State:              "Voting",
-		StartTime:          startTime,
-		EndTime:            endTime,
-		Result:             false,
+		ProposerName: proposerName,
+		VoterMap: voterMap,
+		UpVotes: 0,
+		NegativeVotes: 0,
+		NumberOfVoter: len(voterMap),
+		NumberOfVoted: 0,
+		State: "Voting",
+		StartTime: startTime,
+		EndTime: endTime,
+		Result: false,
 	}
 
 	ballotProposalAsBytes, _ := json.Marshal(ballotProposal)
@@ -136,7 +178,7 @@ func (b *BallotContract) VoteBallotProposal(
 	}
 
 	// 2.获取投票提案
-	ballotProposal, err := b.QueryBallotProposal(ctx, ballotProposalName)
+	ballotProposal,err := b.QueryBallotProposal(ctx, ballotProposalName)
 
 	if err != nil {
 		return nil, err
@@ -186,6 +228,31 @@ func (b *BallotContract) VoteBallotProposal(
 		return nil, err
 	}
 
+	votingProposals, _ := b.QueryVoterProposals(ctx, voterName)
+
+	sort.SliceStable(votingProposals.Proposals, func(i, j int) bool {
+		return votingProposals.Proposals[i].Voted < votingProposals.Proposals[i].Voted
+	})
+
+	for _, p := range votingProposals.Proposals {
+		if p.ProposalName == ballotProposalName {
+			p.Voted = 1
+			break
+		}
+	}
+
+	sort.SliceStable(votingProposals.Proposals, func(i, j int) bool {
+		return votingProposals.Proposals[i].Voted < votingProposals.Proposals[i].Voted
+	})
+
+	votingProposalsAsBytes, _ := json.Marshal(votingProposals)
+
+	// 上链
+	err = ctx.GetStub().PutState("VotingProposals" + voterName, votingProposalsAsBytes)
+
+	if err != nil {
+		return nil, err
+	}
 	// 9.更新信用值
 	_ = r.ChangeCredit(ctx, voterName, BallotAwardCredit)
 
@@ -217,8 +284,8 @@ func (b *BallotContract) CheckBallotProposal(
 	// 4.更改投票提案的状态
 	ballotProposal.State = "Done"
 
-	if ballotProposal.NegativeVotes-ballotProposal.UpVotes < 0 &&
-		ballotProposal.NumberOfVoted*2-ballotProposal.NumberOfVoter > 0 {
+	if 	ballotProposal.NegativeVotes - ballotProposal.UpVotes < 0 &&
+		ballotProposal.NumberOfVoted * 2 - ballotProposal.NumberOfVoter > 0 {
 		ballotProposal.Result = true
 	} else {
 		ballotProposal.Result = false
@@ -234,6 +301,7 @@ func (b *BallotContract) CheckBallotProposal(
 
 	return ballotProposal, nil
 }
+
 
 // QueryBallotProposal 获取投票提案
 func (b *BallotContract) QueryBallotProposal(
@@ -255,6 +323,30 @@ func (b *BallotContract) QueryBallotProposal(
 	_ = json.Unmarshal(ballotProposalAsBytes, ballotProposal)
 
 	return ballotProposal, nil
+}
+
+func (b *BallotContract) QueryVoterProposals(ctx contractapi.TransactionContextInterface,
+	voterName string) (*VotingProposals, error) {
+	// 1.获取投票提案信息
+	votingProposalsAsBytes, err := ctx.GetStub().GetState("VotingProposals" + voterName)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to query User Info from world state. %s ", err.Error())
+	}
+
+	if votingProposalsAsBytes == nil {
+		return nil, fmt.Errorf("VotingProposal %s does not exist", voterName)
+	}
+
+	// 2.赋值
+	votingProposals := new(VotingProposals)
+	_ = json.Unmarshal(votingProposalsAsBytes, votingProposals)
+
+	sort.SliceStable(votingProposals.Proposals, func(i, j int) bool {
+		return votingProposals.Proposals[i].Voted < votingProposals.Proposals[i].Voted
+	})
+
+	return votingProposals, nil
 }
 
 // BallotProposalExist 判断投票提案是否存在

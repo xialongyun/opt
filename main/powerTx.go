@@ -12,15 +12,15 @@ type PowerTXContract struct {
 
 // Compact 电能交易结构体
 type Compact struct {
-	CompactId      string  `json:"compact_id"`
-	State          string  `json:"state"`
-	PowerPlantName string  `json:"power_plant_name"`
-	PowerUserName  string  `json:"power_user_name"`
-	AdminName      string  `json:"admin_name"`
-	Transaction    int     `json:"transaction"`
-	Price          float32 `json:"price"`
-	StartTime      string  `json:"start_time"`
-	EndTime        string  `json:"end_time"`
+	CompactId		string  	`json:"compact_id"`
+	State	    	string  	`json:"state"`
+	PowerPlantName  string 		`json:"power_plant_name"`
+	PowerUserName   string		`json:"power_user_name"`
+	AdminName	    string		`json:"admin_name"`
+	Transaction 	int     	`json:"transaction"`
+	Price           float32 	`json:"price"`
+	StartTime 		string		`json:"start_time"`
+	EndTime 		string		`json:"end_time"`
 }
 
 // Commit powerUser提交compact
@@ -52,21 +52,21 @@ func (p *PowerTXContract) Commit(
 	}
 
 	// 4.查看powerUser信用值， 若小于某个额度，则拒绝交易
-	if powerUser.UserCredit-CreditBorder < 0 {
+	if powerUser.UserCredit - CreditBorder < 0 {
 		return nil, fmt.Errorf("PowerUser credit less than %d ", CreditBorder)
 	}
 
 	// 5.结构体赋值
 	compact := Compact{
-		CompactId:      compactId,
-		State:          "Committing",
+		CompactId: compactId,
+		State: "Committing",
 		PowerPlantName: "",
-		PowerUserName:  powerUserName,
-		AdminName:      "",
-		Transaction:    transaction,
-		Price:          price,
-		StartTime:      startTime,
-		EndTime:        endTime,
+		PowerUserName: powerUserName,
+		AdminName: "",
+		Transaction: transaction,
+		Price: price,
+		StartTime: startTime,
+		EndTime: endTime,
 	}
 
 	compactAsBytes, _ := json.Marshal(compact)
@@ -101,7 +101,7 @@ func (p *PowerTXContract) Bid(
 	}
 
 	// 3.查看powerPlant信用值， 若小于某个额度，则拒绝交易
-	if powerPlant.UserCredit-CreditBorder < 0 {
+	if powerPlant.UserCredit - CreditBorder < 0 {
 		return nil, fmt.Errorf("PowerPlant credit less than %d ", CreditBorder)
 	}
 
@@ -139,7 +139,7 @@ func (p *PowerTXContract) Bid(
 	}
 
 	return compact, nil
-}
+ }
 
 // Deal admin参与交易，达成三方交易
 func (p *PowerTXContract) Deal(
@@ -160,7 +160,7 @@ func (p *PowerTXContract) Deal(
 	}
 
 	// 3.查看admin信用值， 若小于某个额度，则拒绝交易
-	if admin.UserCredit-CreditBorder < 0 {
+	if admin.UserCredit - CreditBorder < 0 {
 		return nil, fmt.Errorf("Admin credit less than %d ", CreditBorder)
 	}
 
@@ -231,21 +231,21 @@ func (p *PowerTXContract) CheckCompact(
 	// 6.1更新信用值和交易额度
 	var r RoleContract
 	var v VarChangeContract
-	if compact.Transaction-powerUsed < 0 {
+	if compact.Transaction - powerUsed < 0 {
 		_ = r.ChangeCredit(ctx, compact.PowerUserName, v.AwardCredit(compact.Transaction))
 	} else {
-		_ = r.ChangeCredit(ctx, compact.PowerUserName, v.AwardCredit(powerUsed-compact.Transaction))
+		_ = r.ChangeCredit(ctx, compact.PowerUserName, v.AwardCredit(powerUsed - compact.Transaction))
 	}
 
-	if compact.Transaction-powerPlant < 0 {
+	if compact.Transaction - powerPlant < 0 {
 		_ = r.ChangeCredit(ctx, compact.PowerPlantName, v.AwardCredit(compact.Transaction))
 	} else {
-		_ = r.ChangeCredit(ctx, compact.PowerPlantName, v.AwardCredit(powerPlant-compact.Transaction))
+		_ = r.ChangeCredit(ctx, compact.PowerPlantName, v.AwardCredit(powerPlant - compact.Transaction))
 	}
 
-	_ = r.ChangePower(ctx, compact.PowerUserName, powerUsed)
-	_ = r.ChangePower(ctx, compact.PowerPlantName, powerPlant)
-	_ = r.ChangePower(ctx, compact.AdminName, powerPlant+powerUsed)
+	_ = r.ChangePower(ctx, compact.PowerUserName,powerUsed)
+	_ = r.ChangePower(ctx, compact.PowerPlantName,powerPlant)
+	_ = r.ChangePower(ctx, compact.AdminName,powerPlant + powerUsed)
 
 	compact.State = "Done"
 	compactAsBytes, _ := json.Marshal(compact)

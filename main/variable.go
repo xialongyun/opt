@@ -20,7 +20,7 @@ var PowerBorder int = 50
 
 // AwardCredit 奖励分
 func (v *VarChangeContract) AwardCredit(power int) int {
-	return (power/PowerBorder + 1) * TxAwardCredit
+	return (power /PowerBorder + 1) * TxAwardCredit
 }
 
 // BallotAwardCredit 初始化投票奖励信用值
@@ -50,7 +50,7 @@ func (v *VarChangeContract) CreateChangeVariableProposal(
 		variable != "TxAwardCredit" &&
 		variable != "PowerBorder" &&
 		variable != "BallotAwardCredit" &&
-		variable != "CommitteeMemberNumber" {
+		variable != "CommitteeMemberNumber"{
 		return nil, fmt.Errorf("The variable is not right ! ")
 	}
 
@@ -79,7 +79,7 @@ func (v *VarChangeContract) CreateChangeVariableProposal(
 // CheckChangeVariableProposal 检查投票结果，并更改变量值
 func (v *VarChangeContract) CheckChangeVariableProposal(
 	ctx contractapi.TransactionContextInterface,
-	ballotProposalName string) (*BallotProposal, error) {
+	ballotProposalName string,) (*BallotProposal, error){
 	// 1.检查结果
 	var b BallotContract
 	ballotProposal, err := b.CheckBallotProposal(ctx, ballotProposalName)
